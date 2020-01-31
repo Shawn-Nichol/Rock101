@@ -19,7 +19,7 @@ Rock101 SS8
 
 
 ## BTN1
-**BTN1_PRESS**
+**BTN1_PRESS** </br>
 MediatTouch next event button.
 
 ## BTN2
