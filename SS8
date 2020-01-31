@@ -417,8 +417,8 @@ action: ne_timer_action {
 /*
  * SS8 Button 2 Calgary to Vancouver simulcast
  * 	
- *	PRESS: Changes inputs for Air chain, Genie and Audio console so local market
- *	       can go to AIR with a feed from the remote market.
+ *	PRESS: Changes inputs for Air chain, Merlin and audio console. C2 goes to air in
+ *	       Calgary.
  *	 
  */
 action: BTN_2_PRESS {
@@ -435,8 +435,8 @@ action: BTN_2_PRESS {
 /*
  * SS8 Button 3 Calgary to Vancouver simulcast
  * 	
- *	PRESS: Changes input for air-chain, merlin and Audio console so local
- *	             console doesn't go to air. 
+ *	PRESS: Changes input for air-chain, merlin and Audio console. Vancouver C2 on air
+ *	       in Calgary and Vancouver
  *	 
  */
 action: BTN_3_PRESS {
@@ -471,12 +471,12 @@ action: BTN_4_OVERPRESS {
 }
 
 /**
- * SS8 Button 5 Vancouver to Calgary Local backup feed.
+ * SS8 Button 5 Vancouver to Calgary backup.
  *
- *	PRESS: Changes inputs for air-chains, merlin and audio console so local
- * 	       market can go to AIR with a feed from the remote market.
- * 	OVERPRESS: Changes input for air-chain, merlin and Audio console so local
- *		  console doesn't go to air. 
+ *	PRESS: Changes inputs for air-chains, merlin and audio console. Vancouver C2 going to 
+ * 	       Air in Vanoucver and Calgary
+ * 	OVERPRESS: Changes input for air-chain, merlin and Audio console. Vancouver C2 console 
+ *		   to air in Calgary only. 
  */
 action: BTN_5_PRESS {    
 	btn_5_overpressed = 0     // Allows for a short press and a long press.
