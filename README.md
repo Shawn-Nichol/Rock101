@@ -41,6 +41,9 @@ Changes inputs for Air Chain, Merlin and Audio Console, Vancouver can go to air 
 **BTN5_OVERPRESS** </br>
 Changes input for Air Chain, Merlin and Audio Console, so local console doesn't go to air. 
 
+**BTN5_RELEASE**
+BTN5_PRESS runs when released. 
+
 ## BTN6
 Caller Dump 
 </br>
