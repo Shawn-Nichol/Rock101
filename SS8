@@ -1,0 +1,1214 @@
+constant: ON    = 1
+constant: on    = 1
+constant: OFF   = 0
+constant: off   = 0
+constant: FLASH = 2
+// Destination
+constant: D_11_SAGE_D   = "24800001" // CFMI Sage EAS digital
+constant: D_11_SAGE_A   = "24000006" // CFMI Sage EAS analog
+constant: D_C2_CRx      = "03010203" // C2 Speaker selection
+constant: D_C2_FADER_15 = "0301000E" // C2 Fader 15
+constant: D_C2_FADER_7  = "03010006" // C2 Fader 7
+constant: D_C2_FADER_8  = "03010007" // C2 Fader 8
+constant: D_C2_FADER_9  = "03010008" // C2 Fader 9
+constant: D_C2_FADER_10 = "03010009" // C2 Fader 10
+constant: D_C2_FADER_11 = "0301000A" // C2 Fader 11
+constant: D_C2_FADER_12 = "0301000B" // C2 Fader 12
+constant: D_CRX         = "03010203"
+constant: D_CUESP       = "03C00001"
+constant: D_BRIDG_XL    = "25000010" //Bridge IT Xtra left input
+constant: D_BRIDG_XR    = "25000011" //Bridge IT Xtra right input
+constant: D_HDPNX       = "03010202"
+constant: D_GENIE1      = "2500000F" //Genie stereo input
+constant: D_LXCUESP     ="03030201"
+constant: D_MER3_1      = "24830200" // Merlin 3 Stereo input 1/2  
+constant: D_MER3_3      = "24830201" // Merlin 3 Mono input 3
+constant: D_MER3_4      = "24830202" // Merlin 3 Mono input 4
+constant: D_MIC4HDPN    = "03C30200"
+constant: D_MIC3HDPN    = "03830400"
+constant: D_VPIN        = "4EC20000"
+// Sources
+constant: S_11_MT1       = "24800005" //MediaTouch output 1
+constant: S_11_MT2       = "24800006" //MediaTouch output 2
+constant: S_11_MT3       = "24800007" //MediaTouch output 3
+constant: S_11_MTSL      = "24800008" //MediaTouch hot keys
+constant: S_C2_PGM       = "03010000" // C2 PGM Bus
+constant: S_C2_OL        = "03010003" // C2 OL bus
+constant: S_11_RANE      = "03400004" // Feeds C2 Headphones
+constant: S_C2_AUD       = "03010001"
+constant: S_C2_AUX1_MUTE = "25000008" // Wheatstone name C2 MT M, Processed feed that mutes commercials from MT for Rock 101.
+constant: S_C2_AUX1      = "03010400" // C2 AUX 1 Processed feed
+constant: S_C2_AUX2_OL   = "03010401" // C2 AUX 2 Processed feed  
+constant: S_CUE          = "03000601"
+constant: S_PGM          = "03010000"
+constant: S_C_PGMX       = "24830200" // Merlin 3 Stereo output 1/2
+constant: S_C_OL         = "24830201" // Merlin 3 Mono output 3
+constant: S_C_PGM        = "24830202"  // Merlin 3 Mono output 4
+constant: S_C_PGMX_B     = "25000005" // Genie stereo output
+constant: S_C_OL_B       = "25000006" // Bridge IT Xtra left output
+constant: S_C_PGM_B      = "25000007" // Bridge IT Xtra right output
+constant: S_A2_PGM       = "04810000" // On fader 15 restore Prod Board 
+constant: S_C2_TV        = "03400007" // On fader 7 restore TV
+constant: S_C2_CD1       = "03400005" // On fader 8 restore CD 1
+constant: S_C2_CD2       = "03400006" // On fader 9 restore CD 2
+constant: S_11_MTSUM     = "24000004" //MediaTouch summed output
+constant: S_MIC3PC       = "4F820000"
+constant: S_MIC4PC       = "4FC20000"
+constant: S_RANE         = "03400004"
+constant: S_VOXPRO       = "4EC20000"
+constant: S_VOXSPLIT     = "03000602"
+constant: NO_SOURCE      = "0000FFFF"
+
+variable: btn_5_overpressed
+variable: BTNTimer
+variable: LastButton // Status runs the last button
+variable: LOGTAG
+variable: LoggingState // Turns loggin on, this is done to avoid status check logging
+variable: MEM_MIC3HDPN // memory for mic 3 headphone source
+variable: MEM_MIC4HDPN// memory for mic 4 headphone source
+variable: MUTE_CUE = 0
+variable: ne_timer
+variable: tmr1
+variable: vBTNTextTop
+variable: vBTNTextBot
+variable: vBTNColorText
+variable: vBTNColorBackground
+variable: vDestination
+variable: vSource
+
+/*
+ * my_startup, runs on SS8 startup, set in script wizard>Custom Action Hooks > Startup Action
+ */
+subroutine: MY_STARTUP {
+    print ("script started")
+
+    // These subroutines need to run twice for the display to come up
+    // on the buttons. 
+    call DisplayBTN2(AGColor_white, AGColor_black, "V to C", "MAIN")
+    call DisplayBTN3(AGColor_white, AGColor_black, "CAL", "ONLY") 
+    call DisplayBTN4(AGColor_white, AGColor_black, "RESET", "BOARD")
+    call DisplayBTN5(AGColor_white, AGColor_black, "V to C", "BACKUP")
+    
+    call DisplayBTN2(AGColor_white, AGColor_black, "V to C", "MAIN")
+    call DisplayBTN3(AGColor_white, AGColor_black, "CAL", "ONLY") 
+    call DisplayBTN4(AGColor_white, AGColor_black, "RESET", "BOARD")
+    call DisplayBTN5(AGColor_white, AGColor_black, "V to C", "BACKUP")
+
+
+    create_monitor_lio_3p (2, 2, 3, "MIC3_TS4")  // mic 3 tb("PC") button press
+    create_monitor_lio_3p (3, 1, 3, "MIC4_TS4")  // mic 4 tb("PC") button press
+    create_monitor_lio (4,0,"6,7","DELAY_STATUS_1") // monitors if delay box is in or out of delay and is safe
+    create_monitor_dst (D_VPIN, "SRC", "VP_SOURCE_1")  // voxpro source change
+    create_monitor_dst (D_CRX, "SRC", "CRX_SOURCE_1")  // crx source change
+    tmr1 = tmr_create_periodic (100, "CRX_SOURCE_1")
+    create_monitor_lio (1,0,"3","STUDIO1_INUSE_1") // monitors if on-air light is on
+    create_monitor_lio_soft (6,"1,3","VP_REC_TALLY_1") // monitors if voxpro is recording 
+    create_monitor_lio (8,0,"3","VP_STOP") // stop voxpro rec when phone is hung up
+    call DELAY_STATUS ()
+    call VP_SOURCE ()
+    call VP_REC_TALLY ()
+    call STUDIO1_INUSE ()
+    call CRX_SOURCE ()
+ 
+}
+    
+action: DELAY_STATUS_1 {
+	call DELAY_STATUS ()
+     }
+
+action: VP_SOURCE_1{
+	call VP_SOURCE ()
+     }
+   
+action: VP_REC_TALLY_1{
+	call VP_REC_TALLY ()
+     }
+    
+action: STUDIO1_INUSE_1{
+	call STUDIO1_INUSE ()
+     }
+        
+action: CRX_SOURCE_1{
+	call CRX_SOURCE ()
+     }
+    
+/*
+ * Delay status checks the state the delay unit is in.
+ */    
+subroutine: DELAY_STATUS {
+    if (get_lio(4,0,6) == 1) {
+        btn_led (8,1)
+        print ("IN DELAY")
+    } else {
+        btn_led (8,0)
+        print ("DELAY OUT")
+    }
+
+
+    if (get_lio(4,0,7) == 1) {
+        btn_led (7,1)
+        print ("Delay Safe")
+    } else { 
+        btn_led (7,0)
+        print ("Delay Not Safe")
+    }
+}
+
+/*
+ * VP_SOURCE, checks the status of the source feeding VoxPro.
+ */
+subroutine: VP_SOURCE {
+    print ("VP SOURCE")
+    if (connection (D_VPIN) eqi S_VOXSPLIT) { // is split feed connected to voxpro
+        lio_set(2,1)
+       // lio_set(lio, value)
+    } else { // Turns on LIO SS8-S12
+        lio_set(2,0)
+    } // turn off LIO SS8-S12
+
+
+    if (connection (D_VPIN) eqi S_C2_AUD) { // is console aud buss connected to voxpro
+        lio_set(1,1) // turn on surface button 10
+    }else {
+        lio_set(1,0) // turn off surface button 10
+    }
+
+}
+   
+/*
+ * VP_REC_TALLY, if voxpro is recording turn on lights
+ */
+subroutine: VP_REC_TALLY {
+    print ("vp rec tally")
+    if((get_lio_soft (6,1) == 1) || (get_lio (8,0,3) == 1)) {
+        print ("vp is recoiding")
+        set_lio (1,0,0,1) // console ring on
+        set_lio (7,0,1,1) // room on-air light
+    } else {
+        print ("vp is not recording")
+        set_lio (1,0,0,0) // console ring on
+        set_lio (7,0,1,0) // room on-air light
+    }
+}
+      
+/*
+ * STUDIO1_INUSE, studio is in use. 
+ */    
+subroutine: STUDIO1_INUSE {
+    variable: vStudioLIO // *SN
+    vStudioLIO = get_lio (2,0,5) // *SN
+    print (vStudioLIO) // *SN
+    print (MUTE_CUE)
+
+    if(vStudioLIO == 1) { // *SN
+        print ("Studio 1 in use")
+        disconnect (D_LXCUESP)
+        disconnect (D_CUESP)
+    }
+
+    if((vStudioLIO == 0) && (MUTE_CUE == 0 )){ // *SN
+        print ("Studio not 1 in use")
+        connect (D_LXCUESP,S_CUE)
+        connect (D_CUESP,S_CUE)
+    }
+}
+        
+subroutine: CRX_SOURCE {
+    print ("match headphone source")
+
+    if ((connection (D_HDPNX) !eqi S_CUE) && (connection (D_CRX) == S_PGM)) { // *SN combined two if statements.
+        connect (D_HDPNX, S_RANE)
+    }
+
+    if (MUTE_CUE == 0) {
+        lio_set (3,0)
+    }
+}
+
+
+/*
+ * BTN_2_PRESS_STATUS: Checks the crosspoint connect that BTN2 establishes and updates the SS8 
+ * 			 Button to reflect the changes.  
+ */
+action: BTN2_PRESS_STATUS {
+    
+    if(connection(D_11_SAGE_D) !eq S_C2_PGM) {
+        print("BTN2_STATUS error 11 SAGE D not connect to C2 PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "11 SAGE D to", "C2 PGM")
+        
+    } elif(connection(D_11_SAGE_A) !eq S_C2_PGM) {
+        print("BTN2_STATUS error 11 SAGE A not connected to C2 PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "11 SAGE A", "C2 PGM")
+        
+    } elif(connection(D_C2_FADER_7) !eq S_C_PGMX) {
+        print("BTN2_STATUS error C2 Fader 7 not connected to C PGMX")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "Fader 7", "PGMX")
+    
+    } elif(connection(D_C2_FADER_8) !eq S_C_OL) {
+        print("BTN2_STATUS error C2 Fader 8 not connected to C OL")    
+
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "Fader 8", "C OL")
+        
+    } elif(connection(D_C2_FADER_9) !eq S_C_PGM) {
+        print("BTN2_STATUS error C2 Fader 9 not connected to C PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "Fader 9", "C PGM")
+        
+    } elif(connection(D_MER3_1) !eq S_C2_AUX1_MUTE) {
+        print("BTN2_STATUS error D MER3 1 not connected to C2 AUX1 MUTE")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "MER3 1", "C2 AUX1 Mute")
+    
+    } elif(connection(D_MER3_3) !eq S_C2_AUX2_OL) {
+        print("BTN2_STATUS error MER3 3 not connected to C2 AUX 2")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "MER3 3", "C2 AUX 2")
+        
+    } elif(connection(D_MER3_4) !eq S_C2_AUX1) {
+        print("BTN2_STATUS error D MER3 4 not connected to C2 AUX1")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_red, "V PGM", "C2 AUX1")
+        
+    } else {
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN2(AGColor_black, AGColor_green, "BOTH", "VAN CAL")
+        
+    }
+}
+
+/*
+ * BTN_3_PRESS_STATUS: Checks the crosspoint connect that BTN3 establishes and updates the 
+ * 	             SS8 Button to reflect the changes.  
+ */
+action:BTN3_PRESS_STATUS {
+    
+    if(connection(D_11_SAGE_D) !eq S_11_MTSUM) {
+        print("BTN3_STATUS error 11 SAGE D not connect to 11 MTSUM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "11 SAGE D to", "11 MTSUM")
+        
+    } elif(connection(D_11_SAGE_A) !eq S_11_MTSUM) {
+        print("BTN3_STATUS error 11 SAGE A not connected to 11 MTSUM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "11 SAGE A", "11 MTSUM")
+        
+    } elif(connection(D_C2_FADER_7) !eq S_C_PGMX) {
+        print("BTN3_STATUS error C2 Fader 7 not connected to C PGMX")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "Fader 7", "C PGMX")
+    
+    } elif(connection(D_C2_FADER_8) !eq S_C_OL) {
+        print("BTN3_STATUS error C2 Fader 8 not connected to C OL")    
+
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "Fader 8", "C OL")
+        
+    } elif(connection(D_C2_FADER_9) !eq S_C_PGM) {
+        print("BTN3_STATUS error C2 Fader 9 not connected to C PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "Fader 9", "C PGM")
+      
+    } elif(connection(D_C2_CRx) !eq S_C2_PGM) {
+        print("BTN3_STATUS error C2 CRx not connected to C2 PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "C2 CRx", "C2 PGM")
+           
+    } elif(connection(D_MER3_1) !eq S_C2_AUX1_MUTE) {
+        print("BTN3_STATUS error MER3 1 not connected to C2 PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "MER3 1", "C2 PGM")
+    
+    } elif(connection(D_MER3_3) !eq S_C2_AUX2_OL) {
+        print("BTN3_STATUS error MER3 3 not connected to C2 AUX 2")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "MER3 3", "C2 AUX2")
+        
+     } elif(connection(D_MER3_4) !eq S_C2_AUX1) {
+        print("BTN3_STATUS error MER3 5 not connected to C2 AUX1")
+           
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_red, "MER3 5", "C2 AUX1")
+          
+    } else {
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN3(AGColor_black, AGColor_green, "CAL", "ONLY")
+        
+    }   
+}
+/*
+ * BTN_5_PRESS_STATUS: Checks the crosspoint connect that BTN5 establishes and updates the SS8 Button
+ * 	              to reflect the changes.  
+ */
+action:BTN5_PRESS_STATUS {
+        
+    if(connection(D_11_SAGE_D) !eq S_C2_PGM) {
+        print("BTN5_STATUS error 11_SAGE_D not connect to C2 PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "11 SAGE D ", "C2 PGM")
+        
+    } elif(connection(D_11_SAGE_A) !eq S_C2_PGM) {
+        print("BTN5_STATUS error 11_SAGE_A not connected to C2 PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "11 SAGE A", "C2 PGM")
+        
+    } elif(connection(D_C2_FADER_7) !eq S_C_PGMX_B) {
+       print("BTN5_STATUS error C2 Fader 7 not connected to C PGMX B")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "Fader 7", "C PGMX B")
+    
+    } elif(connection(D_C2_FADER_8) !eq S_C_OL_B) {
+        print("BTN5_STATUS error C2 Fader 8 not connected to C OL B")    
+
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "Fader 8", "C OL B")
+        
+    } elif(connection(D_C2_FADER_9) !eq S_C_PGM_B) {
+        print("BTN5_STATUS error C2 Fader 9 not connected to C PGM B")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "Fader 9", "C PGM B")
+        
+    } elif(connection(D_GENIE1) !eq S_C2_AUX1_MUTE) {
+        print("BTN5_STATUS error D GENIE1 not connected to C2 AUX1 MUTE")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "GENIE1", "C2 AUX1 Mute")
+    
+    } elif(connection(D_BRIDG_XL) !eq S_C2_AUX2_OL) {
+        print("BTN5_STATUS error BRIDG XL not connected to C2 AUX2 OL")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "BRIDG XL", "C2 AUX2 OL")
+        
+    } elif(connection(D_BRIDG_XR) !eq S_C2_AUX1) {
+        print("BTN5_STATUS error BRIDG XR not connected to C2 AUX1")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "BRIDG XR", "C2 AUX1")
+        
+    } else {
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_green, "BOTH ", "VAN CAL B")
+        
+    }
+}
+
+/*
+ * BTN_5_OVERPRESS_STATUS: Checks the crosspoint connect that BTN5 establishes and updates the SS8 Button
+ * 	              to reflect the changes.  
+ */
+action: BTN5_OVERPRESS_STATUS {
+    
+    if(connection(D_11_SAGE_D) !eq S_11_MTSUM) {
+        print("BTN5_STATUS error 11 SAGE D not connect to 11 MTSUM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "11 SAGE D to", "11 MTSUM")
+        
+    } elif(connection(D_11_SAGE_A) !eq S_11_MTSUM) {
+        print("BTN5_STATUS error 11 SAGE A not connected to 11 MTSUM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "11 SAGE A to", "11 MTSUM")
+        
+    } elif(connection(D_C2_FADER_7) !eq S_C_PGMX_B) {
+        print("BTN5_STATUS error C2 Fader 7 not connected to C PGMX B")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "Fader 7", "PGMX B")
+    
+     } elif(connection(D_C2_FADER_8) !eq S_C_OL_B) {
+         print("BTN5_STATUS error C2 Fader 8 not connected to C OL B")    
+
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "Fader 8", "C OL B")
+        
+    } elif(connection(D_C2_FADER_9) !eq S_C_PGM_B) {
+         print("BTN5_STATUS error C2 Fader 9 not connected to C PGM_B")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "Fader 9", "C PGM_B")
+      
+    } elif(connection(D_C2_CRx) !eq S_C2_PGM) {
+        print("BTN5_STATUS error C2 CRx not connected to C2 PGM")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "C2 CRx", "C2 PGM")
+           
+    } elif(connection(D_GENIE1) !eq S_C2_AUX1_MUTE) {
+        print("BTN5_STATUS error GENIE1 not connected to C2 AUX1 MUTE")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "GENIE1", "C MUTE")
+    
+    } elif(connection(D_BRIDG_XL) !eq S_C2_AUX2_OL) {
+        print("BTN5_STATUS error BRIDG XL not connected to C2 AUX2 OL")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "BRIDG XL", "C2 AUX2 OL")
+          
+    } elif(connection(D_BRIDG_XR) !eq S_C2_AUX1) {
+        print("BTN5_STATUS error BRIDG XR not connected to C2 AUX1")
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_red, "BRIDG XR", "C2 AUX1")
+        
+    } else {
+        
+        // Parameter, TextColor, BTN background, Text 1, Text 2
+        call DisplayBTN5(AGColor_black, AGColor_green, "CAL", "ONLY B")        
+    }  
+}
+
+
+/*
+ * TS4 Mic 3 TB(PC) BTN is pressed, stores current source connected to the headphones and connects PC to headphones. 
+ */
+// This Action can be preformed in Navigator should be removed from SS8
+action: MIC3_TS4 {
+    print ("mic 3 pc")
+    if ( get_lio_3p (2,2,3) eqi 1) { // if the TB LIO equals 1(TB pressed)
+        if (connection (D_MIC3HDPN) eqi S_MIC3PC) { // is mic 3 PC connected to headphones
+            connect (D_MIC3HDPN, MEM_MIC3HDPN) // connects previous source to mic 3 headphones 
+        } else {
+            MEM_MIC3HDPN = connection (D_MIC3HDPN) // stores current feed connect to mic
+            connect (D_MIC3HDPN, S_MIC3PC) // connects mic 3 pc audio mic 3 headphones
+        }
+    }
+}
+
+
+/*
+ * TS4 Mic 4 TB(PC) BTN is pressed, stores current source connected to headphones and connects PC to headphones
+ */
+action: MIC4_TS4 { // runs every time TB ("PC") button is pressed on mic 4 TS4
+    print ("mic 4 pc")
+    if ( get_lio_3p (3,1,3) eqi 1) { // if the TB LIO equals 1(TB pressed)
+        if (connection (D_MIC4HDPN) eqi S_MIC4PC) { // is mic 4 PC connected to headphones
+            connect (D_MIC4HDPN, MEM_MIC4HDPN) // connects previous source to mic 4 headphones 
+        } else {
+            MEM_MIC4HDPN = connection (D_MIC4HDPN) // stores current feed connect to mic
+            connect (D_MIC4HDPN, S_MIC4PC) // connects mic 4 pc audio mic 4 headphones
+        }
+    }
+}
+
+
+/*
+ * MT next event button.
+ */
+action: BTN_1_PRESS {  
+    btn_led ( 1, ON) print ("next event on")
+    set_lio_soft (5,1,1) // turns on next event
+    ne_timer = tmr_create_one_shot (5, "ne_timer_action")
+}
+
+
+/*
+ * When the timer in BTN 1 expires this action will run, turning off the btn_led and LIO.
+ */
+//- action: ne_timer_action
+action: ne_timer_action { 
+    btn_led ( 1, OFF) print ("next event off")
+    set_lio_soft (5,1,0) // turns off next event
+}
+
+
+/*
+ * SS8 Button 2 Calgary to Vancouver simulcast
+ * 	
+ *	PRESS: Changes inputs for Air chain, Genie and Audio console so local market
+ *	       can go to AIR with a feed from the remote market.
+ *	 
+ */
+action: BTN_2_PRESS {
+    LOGTAG = "BTN 2 PRESS:"
+    print(LOGTAG)    
+    LoggingState = on     // LoggingState on, turns on BTN display logging          
+    call RemoteAirChain()
+    call RemoteBoardSetup()
+    call RemoteMerlinSetup()
+    call RemoteStatus2()   
+    LoggingState = off     // LoggingState off, turns off BTN display logging
+}
+
+
+/*
+ * SS8 Button 3 Calgary to Vancouver simulcast
+ * 	
+ *	PRESS: Changes input for air-chain, merlin and Audio console so local
+ *	             console doesn't go to air. 
+ *	 
+ */
+action: BTN_3_PRESS {
+        LOGTAG = "BTN 3 PRESS:"
+        print(LOGTAG)  	
+        LoggingState = on     // LoggingState on, turns on BTN display logging.  
+        call LocalAirChain()
+        call LocalBoardSetup()
+        call LocalMerlinSetup()
+        call LocalStatus3()
+        LoggingState = off     // LoggingState off, turns BTNDisplay logging off
+    
+    }
+
+
+/*
+ * SS8 Button 4: end of morning show,
+ *	sets the Air feed back to C2 PGM, Sets the audio console back to its default
+ *       settings so it can go to air directly.
+ * 	Disconnects sources from the Codecs to reduce confusion in other market.
+ *       market. 
+ */
+action: BTN_4_OVERPRESS {
+    LOGTAG = "BTN 4 OVERPRESS:"
+    print(LOGTAG)    
+    LoggingState = on     // LoggingState on, turns on BTN display logging
+    call TimerKill()    
+    call LocalAirChain()
+    call ResetBoardSetup()
+    call ResetMerlinSetup()
+    call ResetStatus()    
+    // Parameter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN4(AGColor_white, AGColor_black, "RESTORE", "BOARD")    
+    LoggingState = off     // LoggingState off, turns BTNDisplay logging off
+}
+
+/**
+ * SS8 Button 5 Vancouver to Calgary Local backup feed.
+ *
+ *	PRESS: Changes inputs for air-chains, merlin and audio console so local
+ * 	       market can go to AIR with a feed from the remote market.
+ * 	OVERPRESS: Changes input for air-chain, merlin and Audio console so local
+ *		  console doesn't go to air. 
+ */
+action: BTN_5_PRESS {    
+     btn_5_overpressed = 0     // Allows for a short press and a long press.
+}
+
+action: BTN_5_OVERPRESS {
+    LOGTAG = "BTN 5 OVERPRESS: "
+    print(LOGTAG)    
+    btn_5_overpressed = 1       
+    LoggingState = on     // LoggingState on, turns on BTN display logging
+    call RemoteAirChain()
+    call RemoteBoardSetupB()
+    call RemoteMerlinSetupB()
+    call RemoteStatusB()    
+    LoggingState = off     // LoggingState off, turns BTNDisplay logging off
+    call TimerCreate("BTN5_OVERPRESS_STATUS")
+}
+
+action: BTN_5_RELEASE {    
+    if (btn_5_overpressed == 0) {
+        LOGTAG = "BTN 5 PRESS:"
+        print(LOGTAG)        
+        LoggingState = on     // LoggingState on, turns on BTN display logging.
+        call LocalAirChain()
+        call LocalBoardSetupB()
+        call LocalMerlinSetupB()
+        call LocalStatusB()   
+        LoggingState = off     // LoggingState off, turns BTNDisplay logging off
+        call TimerCreate("BTN5_PRESS_STATUS")  
+    }
+}
+
+
+/*
+ * Caller Dump. 
+ */ 
+action: BTN_6_PRESS {
+    btn_led ( 6, ON)
+    set_lio (4,0,10,1)
+    print ("DUMP")
+}
+
+action: BTN_6_RELEASE {
+    btn_led ( 6, OFF)
+    set_lio (4,0,10,0)
+    print ("DUMP release")
+}
+
+
+/*
+ * Start Delay, Builds Delay.
+ */  
+action: BTN_7_PRESS {
+    print ("START DELAY") 
+    set_lio (4,0,9,1)
+}
+
+action: BTN_7_RELEASE {
+    print ("START DELAY relase") 
+    set_lio (4,0,9,0)
+}
+
+
+/*
+ * Ends Delay. 
+ */ 
+action: BTN_8_PRESS { 
+    print ("end delay")
+    set_lio (4,0,8,1)
+}
+
+action: BTN_8_RELEASE { 
+    print ("end delay release")
+    set_lio (4,0,8,0)
+}
+
+
+/*
+ * VoxPro Stop 
+ */ 
+action: VP_STOP {
+    if (get_lio (8,0,3) == 0) {
+        set_lio_soft (6,4,1) 
+        call VP_REC_TALLY ()
+    }
+    set_lio_soft (6,4,0) 
+}
+
+
+/*
+ * Cue Mute Button. 
+ */ 
+action: LIO_1_HI { // cue speaker mute button
+    variable: M_CRX
+    print ("lio_1_hi")
+    //if (connection (D_CUESP) !eqi NO_SOURCE)
+    if (MUTE_CUE == 0) {
+        disconnect (D_LXCUESP)
+        disconnect (D_CUESP)
+        connect (D_HDPNX, S_CUE)
+        lio_set (3,1)
+        MUTE_CUE = 1
+        print ("cue speaker mute")
+    } else {
+        MUTE_CUE = 0
+        M_CRX = connection (D_CRX)
+        connect (D_HDPNX, M_CRX)
+        call STUDIO1_INUSE ()
+        lio_set (3,0)
+        print ("cue speaker on")
+    }
+}
+
+
+
+/////////////////////////////////////// Subroutines  //////////////////////
+
+/*
+ * ConnectionTest: Test connection to runs and prints results.
+ *
+ * 	Parameter $1 destination signal.
+ * 	Parameter $2 Source signal.
+ *
+ *	if/else Statement used for logging only. 
+ */
+subroutine: ConfirmConnection{
+    vDestination = $1
+    vSource = $2
+    unlock(vDestination)     // Unlocks signal if locked
+    if(connect(vDestination, vSource) == 0) {     // Connects destination to source, returns 0 if successful
+        print("ConfirmConnection" # vDestination # " " # vSource)
+    } else {
+        print("CONNECTION FAILED")
+    }
+}
+
+
+/*
+ * ConfirmDisconnect: disconnects destination from source
+ *
+ * 	Parameter $1 destination signal.
+ * 	Parameter $2 Source signal.
+ *
+ *	if/else Statement used for logging only. 
+ */
+subroutine: ConfirmDisconnect{    
+    vDestination = $1
+    unlock(vDestination)     // Unlocks signal if locked
+    if(disconnect(vDestination) == 0) {     // Disconnects destination from source, returns 0 if successful
+        print("Disconnected" # vDestination )
+    } else {
+        print("DISCONNECT FAILED" # vDestination )
+    }
+    
+}
+
+  
+/*
+ * BTN2Displays: Displays the information on BTN 2
+ *
+ *	Parameter $1 TextColor 
+ *	Parameter $2 Background Color 
+ * 	Parameter $3 TextBox 1, top half of button
+ *	Parameter $4 TextBox 2, bottom half of button
+ * 
+ */
+subroutine: DisplayBTN2 {
+    if(LoggingState == on) {
+        print("DisplayBTN2:")     // Logs the DisplayButtons Parameters.
+        call DisplayBTNLog ($1, $2, $3, $4) 
+    }
+    
+    vBTNColorText = $1
+    vBTNColorBackground = $2
+    vBTNTextTop = $3
+    vBTNTextBot = $4
+
+    btn_state(AGL_btn2, on)  
+    display_box_colors(AGL_btn2_buf1_tb1, vBTNColorText, vBTNColorBackground) 
+    display_box_colors(AGL_btn2_buf1_tb2, vBTNColorText, vBTNColorBackground)
+    display_box_draw_text(AGL_btn2_buf1_tb1, vBTNTextTop) 
+    display_box_draw_text(AGL_btn2_buf1_tb2, vBTNTextBot)
+    display_buffer_button(AGL_btn2_buf1, on, AGL_btn2)     // Writes to button.
+}
+
+
+/*
+ * DisplaysBTN3: Displays the information on BTN 3
+ *
+ *	Parameter $1 TextColor 
+ *	Parameter $2 Background Color 
+ * 	Parameter $3 TextBox 1, top half of button
+ *	Parameter $4 TextBox 2, bottom half of button
+ * 
+ */
+subroutine: DisplayBTN3 {
+    if(LoggingState == on) {
+        print("DisplayBTN3:")     // Logs the DisplayButtons Parameters.
+        call DisplayBTNLog ($1, $2, $3, $4) 
+    }
+ 
+    vBTNColorText = $1
+    vBTNColorBackground = $2
+    vBTNTextTop = $3
+    vBTNTextBot = $4
+    
+    btn_state(AGL_btn3, on)  
+    display_box_colors(AGL_btn3_buf1_tb1, vBTNColorText, vBTNColorBackground) 
+    display_box_colors(AGL_btn3_buf1_tb2, vBTNColorText, vBTNColorBackground)
+    display_box_draw_text(AGL_btn3_buf1_tb1, vBTNTextTop) 
+    display_box_draw_text(AGL_btn3_buf1_tb2, vBTNTextBot) 
+    display_buffer_button(AGL_btn3_buf1, on, AGL_btn3)     // Writes to button.
+}
+
+
+/*
+ * DisplaysBTN4: Displays the information on BTN 4
+ *
+ *	Parameter $1 TextColor 
+ *	Parameter $2 Background Color 
+ * 	Parameter $3 TextBox 1, top half of button
+ *	Parameter $4 TextBox 2, bottom half of button
+ * 
+ */
+subroutine: DisplayBTN4 {
+    if(LoggingState == on) {
+        print("DisplayBTN4:")     // Logs the DisplayButtons Parameters.
+        call DisplayBTNLog ($1, $2, $3, $4) 
+    }
+       
+    vBTNColorText = $1
+    vBTNColorBackground = $2
+    vBTNTextTop = $3
+    vBTNTextBot = $4   
+      
+    btn_state(AGL_btn4, on)  
+    display_box_colors(AGL_btn4_buf1_tb1, vBTNColorText, vBTNColorBackground)
+    display_box_colors(AGL_btn4_buf1_tb2, vBTNColorText, vBTNColorBackground) 
+    display_box_draw_text(AGL_btn4_buf1_tb1, vBTNTextTop) 
+    display_box_draw_text(AGL_btn4_buf1_tb2, vBTNTextBot) 
+    display_buffer_button(AGL_btn4_buf1, on, AGL_btn4)    // Writes to button.
+}
+
+
+/*
+ * DisplaysBTN5: Displays the information on BTN 5
+ *
+ *	Parameter $1 TextColor 
+ *	Parameter $2 Background Color 
+ * 	Parameter $3 TextBox 1, top half of button
+ *	Parameter $4 TextBox 2, bottom half of button
+ * 
+ */
+subroutine: DisplayBTN5 {
+    if(LoggingState == on) {
+        print("DisplayBTN5:")     // Logs the DisplayButtons Parameters.
+        call DisplayBTNLog ($1, $2, $3, $4) 
+    }
+       
+    vBTNColorText = $1
+    vBTNColorBackground = $2
+    vBTNTextTop = $3
+    vBTNTextBot = $4   
+      
+    btn_state(AGL_btn5, on)  
+    display_box_colors(AGL_btn5_buf1_tb1, vBTNColorText, vBTNColorBackground)
+    display_box_colors(AGL_btn5_buf1_tb2, vBTNColorText, vBTNColorBackground) 
+    display_box_draw_text(AGL_btn5_buf1_tb1, vBTNTextTop) 
+    display_box_draw_text(AGL_btn5_buf1_tb2, vBTNTextBot) 
+    display_buffer_button(AGL_btn5_buf1, on, AGL_btn5)    // Writes to button.
+}
+
+
+/*
+ * DisplayBTNLog, Logs the DispalyBTN# input parameters.
+ */ 
+subroutine: DisplayBTNLog {
+    print("            Text Color $1: " # $1)
+    print("            Background Color $2: " # $2)
+    print("            TextBox 1 $3: " # $3)
+    print("            TextBox 2 $4: " # $4)
+}
+
+
+/*
+ * LocalAirChain: PGM becomes the audio source for the Main and Backup audio source.
+ */
+subroutine: LocalAirChain {
+    print("    LocalAirChain")
+
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_11_SAGE_D, S_C2_PGM) 
+    call ConfirmConnection(D_11_SAGE_A, S_C2_PGM)
+}
+
+
+/*
+ * LocalBoardSetup: setup up Audio console to take Remote Market feed and go to air locally. 
+ */ 
+subroutine: LocalBoardSetup {
+    print("    LocalBoardSetup")
+
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_C2_FADER_7, S_C_PGMX)
+    call ConfirmConnection(D_C2_FADER_8, S_C_OL)
+    call ConfirmConnection(D_C2_FADER_9, S_C_PGM)
+    call ConfirmConnection(D_C2_FADER_10, S_11_MT1)
+    call ConfirmConnection(D_C2_FADER_11, S_11_MT2)
+    call ConfirmConnection(D_C2_FADER_12, S_11_MT3)
+}
+
+
+/*
+ * BoardSetupLocalB: setup up Audio console to take Remote Market feed and go to air locally. 
+ */ 
+subroutine: LocalBoardSetupB {
+    print("    LocalBoardSetupB")
+
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_C2_FADER_7, S_C_PGMX_B)
+    call ConfirmConnection(D_C2_FADER_8, S_C_OL_B) 
+    call ConfirmConnection(D_C2_FADER_9, S_C_PGM_B)
+    call ConfirmConnection(D_C2_FADER_10, S_11_MT1)
+    call ConfirmConnection(D_C2_FADER_11, S_11_MT2)
+    call ConfirmConnection(D_C2_FADER_12, S_11_MT3)
+    call ConfirmConnection(D_C2_CRx, S_11_RANE)
+}
+
+/*
+ * LocalMerlinSetup: Connects sources to merlin when Local market and remote market is going to air. 
+ */ 
+subroutine: LocalMerlinSetup {
+    print("    LocalMerlinSetup")
+
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_MER3_1, S_C2_AUX1_MUTE)
+    call ConfirmConnection(D_MER3_3, S_C2_AUX2_OL) 
+    call ConfirmConnection(D_MER3_4, S_C2_AUX1)
+    call ConfirmConnection(D_C2_CRx, S_11_RANE) 
+}
+
+
+/*
+ * LocalMerlinSetupB: Connects sources to backup coded when Local market and remote market is going to air. 
+ */ 
+subroutine: LocalMerlinSetupB {
+    print("    LocalMerlinSetupB")
+
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_GENIE1, S_C2_AUX1_MUTE)
+    call ConfirmConnection(D_BRIDG_XL, S_C2_AUX2_OL) 
+    call ConfirmConnection(D_BRIDG_XR, S_C2_AUX1)
+    call ConfirmConnection(D_C2_CRx, S_11_RANE) 
+} 
+
+
+/*
+ * LocalStatus2: Change LIO and BTN 2 display to reflect connection.
+ */
+subroutine: LocalStatus2 {
+    print("    LocalStatus2")
+
+    // Paramter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN2(AGColor_black, AGColor_green, "BTN 2", "Press")
+
+    // White LIT status
+    //lio_set(4, on)
+    // Green LIT status
+    //lio_set(5, off)
+}
+
+
+/*
+ * LocalStatus3: Change LIO and BTN 3 display to reflect connection.
+ */
+subroutine: LocalStatus3 {
+    print("    LocalStatus3")
+
+    // Parameter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN3(AGColor_black, AGColor_green, "BTN 3", "Press")
+
+    // White LIT status
+    //lio_set(4, on)
+    // Green LIT status
+    //lio_set(5, off)
+}
+
+
+/*
+ * LocalStatusB: Change LIO and BTN display to reflect connection.
+ */
+subroutine: LocalStatusB {
+    print("    LocalStatusB")
+
+    // Parameter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN5(AGColor_black, AGColor_green, "BTN 5", "Press")
+
+    // White LIT status
+    //lio_set(4, on)
+    // Green LIT status
+    //lio_set(5, off)
+}
+
+
+/*
+ * RemoteAirChain: The Air chains take MTSUM as their input, the audio console is no
+ *		 longer going to air and can be used for a Remote market show. 
+ */
+subroutine: RemoteAirChain {
+    print("    RemoteAirChain")
+
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_11_SAGE_D, S_11_MTSUM)
+    call ConfirmConnection(D_11_SAGE_A, S_11_MTSUM)
+}
+
+
+/*
+ * RemoteBoadSetup: Changes Studio setting so only it doesn't go to air and monitors
+ * studio feeds not air feeds. 
+ */
+subroutine: RemoteBoardSetup {
+    print("    RemoteBoardSetup")
+    
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_C2_FADER_7, S_C_PGMX)
+    call ConfirmConnection(D_C2_FADER_8, S_C_OL)
+    call ConfirmConnection(D_C2_FADER_9, S_C_PGM)
+    // Changes the Control room source so it’s not monitoring an Air chain.
+    call ConfirmConnection(D_C2_CRx, S_C2_PGM)
+    // Removes MT from the audio console to prevent the OP from accidental
+    // firing the next event in MT.
+    call ConfirmDisconnect(D_C2_FADER_10)
+    call ConfirmDisconnect(D_C2_FADER_11)
+    call ConfirmDisconnect(D_C2_FADER_12)
+}
+
+
+/*
+ * RemoteBoadSetupB: Changes Studio setting so only it doesn't go to air and
+ * monitors studio feeds not air feeds. 
+ */
+subroutine: RemoteBoardSetupB {
+    print("    RemoteBoardSetupB")
+    
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_C2_FADER_7, S_C_PGMX_B)
+    call ConfirmConnection(D_C2_FADER_8, S_C_OL_B)
+    call ConfirmConnection(D_C2_FADER_9, S_C_PGM_B)
+    // Changes the Control room source so it’s not monitoring an Air chain.
+    call ConfirmConnection(D_C2_CRx, S_C2_PGM)
+    // Removes MT from the audio console to prevent the OP from accidental
+    // firing the next event in MT.
+    call ConfirmDisconnect(D_C2_FADER_10)
+    call ConfirmDisconnect(D_C2_FADER_11)
+    call ConfirmDisconnect(D_C2_FADER_12)
+}
+
+
+/*
+ * RemoteMerlinSetup: Set Merlin up for remote connection. 
+ */
+subroutine: RemoteMerlinSetup {
+    print("    RemoteMerlinSetup")
+    
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_MER3_1, S_C2_AUX1_MUTE)
+    call ConfirmConnection(D_MER3_3, S_C2_AUX2_OL)
+    call ConfirmConnection(D_MER3_4, S_C2_AUX1)
+}
+ 
+
+ /*
+ * RemoteMerlinSetupB: Set Merlin up for remote connection. 
+ */
+subroutine: RemoteMerlinSetupB {
+    print("    RemoteMerlinSetupB")
+    
+    // ConnectionTest Parameter $1 Destination signal, $2 Source signal
+    call ConfirmConnection(D_GENIE1, S_C2_AUX1_MUTE)
+    call ConfirmConnection(D_BRIDG_XL, S_C2_AUX2_OL)
+    call ConfirmConnection(D_BRIDG_XR, S_C2_AUX1) 
+}
+
+
+/*
+ * RemoteStatus2: Update status to reflect a connection to the remote market.
+ */
+subroutine: RemoteStatus2 {
+    print("    RemoteStatus2")
+    
+    // Parameter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN2(AGColor_black, AGColor_green, "BTN 2", "OverPress")
+    
+    // White LIT status
+    //lio_set(4, off)
+    // Green LIT status
+    //lio_set(5, on)
+}
+
+
+/*
+ * RemoteStatus3: Update status to reflect a connection to the remote market.
+ */
+subroutine: RemoteStatus3 {
+    print("    RemoteStatus3")
+    
+    // Parameter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN3(AGColor_black, AGColor_green, "BTN 3", "OverPress")
+    
+    // White LIT status
+    //lio_set(4, off)
+    // Green LIT status
+    //lio_set(5, on)
+}
+
+
+/*
+ * RemoteStatusB: Update status to reflect a connection to the remote market.
+ */
+subroutine: RemoteStatusB {
+     print("    RemoteStatusB")
+   
+ // Parameter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN5 (AGColor_black, AGColor_green, "BTN 5", "OverPress")
+    
+    // White LIT status
+    //lio_set(4, off)
+    // Green LIT status
+    //lio_set(5, on)
+}
+
+
+/*
+ * ResetBoardsetup: board is set back to default settings
+ */
+subroutine: ResetBoardSetup {
+    print("    ResetBoardSetup")
+    
+    call ConfirmConnection(D_C2_FADER_10, S_11_MT1)
+    call ConfirmConnection(D_C2_FADER_11, S_11_MT2)
+    call ConfirmConnection(D_C2_FADER_12, S_11_MT3)
+    call ConfirmConnection(D_C2_CRx, S_11_RANE)
+    call ConfirmConnection(D_C2_FADER_15, S_A2_PGM)
+    call ConfirmConnection(D_C2_FADER_7, S_C2_TV)
+    call ConfirmConnection(D_C2_FADER_8, S_C2_CD1)
+    call ConfirmConnection(D_C2_FADER_9, S_C2_CD2)
+}
+
+
+/*
+ * ResetMerlinSetup: Merlin sources are disconnected.
+ */
+subroutine: ResetMerlinSetup {
+    print("    ResetMerlinSetup")
+    
+    call ConfirmDisconnect(D_MER3_1)
+    call ConfirmDisconnect(D_MER3_3)
+    call ConfirmDisconnect(D_MER3_4)
+    call ConfirmDisconnect(D_GENIE1)
+    call ConfirmDisconnect(D_BRIDG_XL)
+    call ConfirmDisconnect(D_BRIDG_XR)
+}
+
+
+/*
+ * ResetStatus: Reset the status to the default settings. 
+ */
+subroutine: ResetStatus {
+    print("    ResetStatus")
+    
+    // Parameter, TextColor, BTN background, Text 1, Text 2
+    call DisplayBTN2(AGColor_white, AGColor_black, "V to C", "MAIN")
+    call DisplayBTN3(AGColor_white, AGColor_black, "CAL", "ONLY")
+    call DisplayBTN5(AGColor_white, AGColor_black, "V to C", "BACKUP") 
+    
+    // Green LIT status
+    //lio_set(4, off)
+    // White LIT status
+    //lio_set(5, off)
+}
+
+
+/*
+ * TimerCreate: create timer for the button pressed
+ *	$1 BTN variable
+ *	$2 STATUS that will run
+ */
+subroutine: TimerCreate {
+    print("    CreateTimer:")    
+    print("        StatusCheck: " # $1)
+    call TimerKill()
+    BTNTimer = tmr_create_periodic(3, $1)
+}
+
+
+/*
+ * TimerKillAll: kills all button timers
+ */
+subroutine: TimerKill {
+    print("    TimerKill")
+    tmr_kill(BTNTimer)
+}
+
+
+
+
