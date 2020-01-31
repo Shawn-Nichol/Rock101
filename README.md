@@ -23,7 +23,7 @@ Rock101 SS8
 MediatTouch next event button.
 
 ## BTN2
-**BTN_2PRESS** </br>
+**BTN2_PRESS** </br>
 Vancouver to Calgary Simulcast, changes inputs for Air Chain, Genie and, Audio Console so local market can go to AIR.
 
 ## BTN3
@@ -45,8 +45,7 @@ Changes input for Air Chain, Merlin and Audio Console, so local console doesn't 
 BTN5_PRESS runs when released. 
 
 ## BTN6
-Caller Dump 
-</br>
+Caller Dump </br>
 **BTN6_PRESS**
 
 **BTN6_RELEASE** </br>
